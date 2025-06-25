@@ -1,0 +1,23 @@
+{
+  "name": "chatbot-cloudfront-secure",
+  "version": "0.1.0",
+  "bin": {
+    "chatbot-cloudfront-secure": "bin/deploy.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "deploy": "cdk deploy",
+    "synth": "cdk synth"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.202.0",
+    "constructs": "^10.4.2"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.150",
+    "@types/node": "^24.0.4",
+    "typescript": "^5.3.3"
+  },
+  "main": "index.js",
+  "license": "MIT"
+}
