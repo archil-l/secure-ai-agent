@@ -16,7 +16,7 @@ export class ChatbotInfraStack extends cdk.Stack {
     super(scope, id, props);
 
     const chatFn = new lambda.Function(this, 'ChatFunction', {
-      runtime: lambda.Runtime.NODEJS_18_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       code: lambda.Code.fromAsset('lambda/chatbot'),
       handler: 'index.handler',
       logRetention: logs.RetentionDays.ONE_WEEK,
@@ -27,7 +27,6 @@ export class ChatbotInfraStack extends cdk.Stack {
       proxy: true,
     });
 
-    // Remove Node.js-specific __dirname usage for CDK context
     const pubKeyPath = path.resolve('public_key.pem');
     const pubKeyBody = fs.readFileSync(pubKeyPath, 'utf8');
     const cfPubKey = new cloudfront.PublicKey(this, 'ChatCFPublicKey', {
@@ -59,7 +58,7 @@ export class ChatbotInfraStack extends cdk.Stack {
     );
 
     const cookieSignerFn = new lambda.Function(this, 'CookieSignerFunction', {
-      runtime: lambda.Runtime.NODEJS_18_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       code: lambda.Code.fromAsset('cookie-signer'),
       handler: 'index.handler',
       environment: {
