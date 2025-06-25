@@ -25,7 +25,33 @@ openssl rsa -in private_key.pem -pubout -out public_key.pem
 4. Give it a name and comment.
 5. After creation, note the **Key Pair ID** assigned by AWS.
 
-## 3. Update Your Project
+## 3. Store Your Private Key in AWS Secrets Manager
+
+- Store the contents of your `private_key.pem` in AWS Secrets Manager (e.g., as a secret named `cloudfront/private-key`).
+- Grant your Lambda function permission to access this secret.
+- Set the secret name as an environment variable in your Lambda (e.g., `PRIVATE_KEY_SECRET_NAME`).
+
+## 4. Update Your Lambda Code to Use Secrets Manager
+
+Your Lambda should fetch the private key from Secrets Manager at runtime. Example (Node.js):
+
+```js
+const {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+} = require('@aws-sdk/client-secrets-manager');
+
+const client = new SecretsManagerClient();
+const secretName = process.env.PRIVATE_KEY_SECRET_NAME;
+
+async function getPrivateKey() {
+  const command = new GetSecretValueCommand({ SecretId: secretName });
+  const response = await client.send(command);
+  return response.SecretString;
+}
+```
+
+## 5. Update Your Project
 
 - Place `public_key.pem` in your project root.
 - In your CDK code, replace `<REPLACE_WITH_KEY_PAIR_ID>` with the Key Pair ID from AWS.
@@ -38,4 +64,4 @@ environment: {
 
 ---
 
-Keep your private key safe and never commit it to version control.
+Keep your private key safe and never commit it to version control. Use AWS Secrets Manager for secure access.

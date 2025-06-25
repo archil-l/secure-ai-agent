@@ -62,9 +62,21 @@ export class ChatbotInfraStack extends cdk.Stack {
       code: lambda.Code.fromAsset('cookie-signer'),
       handler: 'index.handler',
       environment: {
-        KEY_PAIR_ID: '<REPLACE_WITH_KEY_PAIR_ID>',
+        KEY_PAIR_ID: '<REPLACE_WITH_KEY_PAIR_ID>', // Replace with your actual Key Pair ID
+        PRIVATE_KEY_SECRET_NAME: 'cloudfront/private-key', // Name of your secret in Secrets Manager
+        DOMAIN: 'yourdomain.com', // Set your domain here or via context/parameter
       },
     });
+
+    // Grant Lambda permission to read the secret
+    cookieSignerFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['secretsmanager:GetSecretValue'],
+        resources: [
+          'arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:cloudfront/private-key*',
+        ],
+      })
+    );
 
     new cdk.CfnOutput(this, 'CloudFrontURL', {
       value: `https://${distribution.domainName}`,
