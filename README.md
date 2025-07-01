@@ -6,20 +6,20 @@
 
 ```mermaid
 flowchart TD
-    A[User Browser]
-    B(Cookie Signer API\n(Lambda: cookie-signer)\n/API Gateway /sign-cookie)
-    C(CloudFront)
-    D(API Gateway /agent)
-    E(Lambda: agent)
+    user[User Browser]
+    signer[Cookie Signer API]
+    cf[CloudFront]
+    api[API Gateway]
+    agent[Lambda Agent]
 
-    A -- 1. Request /sign-cookie --> B
-    B -- Set Signed Cookie --> A
-    A -- 2. Request with Signed Cookie --> C
-    C -- Validates Cookie --> D
-    D -- Invokes --> E
-    E -- Response --> D
-    D -- Response --> C
-    C -- Response --> A
+    user --> signer
+    signer --> user
+    user --> cf
+    cf --> api
+    api --> agent
+    agent --> api
+    api --> cf
+    cf --> user
 ```
 
 This project provisions a secure AWS infrastructure for an agent API using AWS CDK (TypeScript). It features CloudFront signed cookies, Lambda-based API endpoints, and automated key management.
