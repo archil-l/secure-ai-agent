@@ -2,6 +2,7 @@ import {
   SecretsManagerClient,
   GetSecretValueCommand,
 } from '@aws-sdk/client-secrets-manager';
+import { APIGatewayProxyHandler } from 'aws-lambda';
 import crypto from 'crypto';
 
 const KEY_PAIR_ID = process.env.KEY_PAIR_ID as string;
@@ -15,14 +16,19 @@ async function getPrivateKey(): Promise<string> {
     SecretId: PRIVATE_KEY_SECRET_NAME,
   });
   const response = await secretsClient.send(command);
-  if (!response.SecretString)
+  if (!response.SecretString) {
+    console.error('Private key not found in Secrets Manager');
     throw new Error('Private key not found in Secrets Manager');
+  }
+
   return response.SecretString;
 }
 
-export const handler = async (event: any) => {
+export const handler: APIGatewayProxyHandler = async (event: any) => {
   const domain = DOMAIN;
   const expires = Math.floor(Date.now() / 1000) + 60 * 60;
+
+  console.log('Signing cookie for domain:', domain);
 
   const policy = JSON.stringify({
     Statement: [
@@ -42,6 +48,14 @@ export const handler = async (event: any) => {
     .replace(/\//g, '~');
 
   const privateKey = await getPrivateKey();
+
+  if (!privateKey) {
+    console.error('Failed to retrieve private key');
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Internal Server Error' }),
+    };
+  }
   const signature = crypto
     .createSign('RSA-SHA1')
     .update(policy)
@@ -51,6 +65,13 @@ export const handler = async (event: any) => {
     .replace(/\//g, '~');
 
   const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET',
+  };
+
+  const multiValueHeaders = {
     'Set-Cookie': [
       `CloudFront-Policy=${policyBase64}; Domain=${domain}; Path=/; Secure; HttpOnly`,
       `CloudFront-Signature=${signature}; Domain=${domain}; Path=/; Secure; HttpOnly`,
@@ -61,6 +82,7 @@ export const handler = async (event: any) => {
   return {
     statusCode: 200,
     headers,
+    multiValueHeaders,
     body: JSON.stringify({ success: true }),
   };
 };

@@ -1,67 +1,78 @@
-# CloudFront Signed Cookies Setup
+# Chatbot CloudFront Secure
 
-This project uses AWS CloudFront signed cookies for secure access. Follow these steps to generate and configure your key pair:
+This project provisions a secure AWS infrastructure for a chatbot API using AWS CDK (TypeScript). It features CloudFront signed cookies, Lambda-based API endpoints, and automated key management.
 
-## 1. Generate an RSA Key Pair Locally
+## Features
 
-Open your terminal and run:
+- **AWS CDK Infrastructure**: Deploys Lambda, API Gateway, CloudFront, and Secrets Manager resources.
+- **CloudFront Signed Cookies**: Restricts API access using signed cookies and CloudFront Key Groups.
+- **Automated Key Management**: Scripts to generate, rotate, and update CloudFront public/private keys and manage secrets.
+- **Environment-based Configuration**: Uses a `.env` file for key IDs and domain configuration.
 
-```sh
-# Generate a 2048-bit private key
-openssl genrsa -out private_key.pem 2048
+## Getting Started
 
-# Extract the public key in PEM format
-openssl rsa -in private_key.pem -pubout -out public_key.pem
+### Prerequisites
+
+- Node.js & Yarn
+- AWS CLI configured with appropriate permissions
+- AWS CDK v2
+
+### Setup
+
+1. **Install dependencies:**
+   ```bash
+   yarn install
+   ```
+2. **Configure environment:**
+   - Copy `.env.example` to `.env` and set your values, or let the scripts manage it.
+
+### Key Management
+
+To generate and rotate CloudFront keys and update AWS Secrets Manager:
+
+```bash
+yarn keys:update
 ```
 
-- `private_key.pem`: Keep this file secure. Use it for signing cookies.
-- `public_key.pem`: This will be uploaded to CloudFront and referenced in your CDK stack.
+This will:
 
-## 2. Upload the Public Key to CloudFront
+- Generate new private/public key pairs
+- Store the private key in AWS Secrets Manager
+- Create a new CloudFront public key and update `.env` with its ID
+- Prompt you to deploy the stack
 
-1. Go to the AWS Console → CloudFront → Public keys.
-2. Click **Create public key**.
-3. Paste the contents of `public_key.pem` or upload the file.
-4. Give it a name and comment.
-5. After creation, note the **Key Pair ID** assigned by AWS.
+### Deploy Infrastructure
 
-## 3. Store Your Private Key in AWS Secrets Manager
+To build and deploy with the latest environment variables:
 
-- Store the contents of your `private_key.pem` in AWS Secrets Manager (e.g., as a secret named `cloudfront/private-key`).
-- Grant your Lambda function permission to access this secret.
-- Set the secret name as an environment variable in your Lambda (e.g., `PRIVATE_KEY_SECRET_NAME`).
-
-## 4. Update Your Lambda Code to Use Secrets Manager
-
-Your Lambda should fetch the private key from Secrets Manager at runtime. Example (Node.js):
-
-```js
-const {
-  SecretsManagerClient,
-  GetSecretValueCommand,
-} = require('@aws-sdk/client-secrets-manager');
-
-const client = new SecretsManagerClient();
-const secretName = process.env.PRIVATE_KEY_SECRET_NAME;
-
-async function getPrivateKey() {
-  const command = new GetSecretValueCommand({ SecretId: secretName });
-  const response = await client.send(command);
-  return response.SecretString;
-}
+```bash
+yarn deploy
 ```
 
-## 5. Update Your Project
+## Scripts
 
-- Place `public_key.pem` in your project root.
-- In your CDK code, replace `<REPLACE_WITH_KEY_PAIR_ID>` with the Key Pair ID from AWS.
+- `yarn build` – Compile TypeScript
+- `yarn build:lambda` – Compile Lambda functions
+- `yarn keys:update` – Generate and rotate CloudFront keys
+- `yarn deploy` – Build and deploy with environment variables from `.env`
 
-```typescript
-environment: {
-  KEY_PAIR_ID: 'KXXXXXXXXXXXXXX',
-},
-```
+## File Structure
+
+- `stacks/` – CDK stack definitions
+- `lambda/` – Lambda function source code
+- `keys/` – Key management scripts and generated keys
+- `.env` – Environment variables for deployment
+
+## Security
+
+- Private keys are never committed; they are stored in AWS Secrets Manager.
+- CloudFront public keys are managed via AWS CLI and referenced by ID.
+
+## Notes
+
+- Always run `yarn keys:update` before `yarn deploy` when rotating keys.
+- Ensure your AWS credentials allow CloudFront and Secrets Manager operations.
 
 ---
 
-Keep your private key safe and never commit it to version control. Use AWS Secrets Manager for secure access.
+MIT License

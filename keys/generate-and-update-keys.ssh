@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# Load environment variables from project root .env
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$SCRIPT_DIR/.."
+if [ -f "$ROOT_DIR/.env" ]; then
+  set -o allexport
+  source "$ROOT_DIR/.env"
+  set +o allexport
+fi
+
+cd "$SCRIPT_DIR"
+
+# Generate a 2048-bit RSA private key
+openssl genrsa -out private-key.pem 2048
+
+# Convert the private key to PKCS#8 format (traditional, unencrypted)
+openssl pkcs8 -in private-key.pem -out private-key-rsa.pem -nocrypt -traditional
+
+echo "Keys generated: private-key.pem and private-key-rsa.pem"
+
+# Create a extract private key from private keys
+openssl rsa -in private-key-rsa.pem -pubout -out public-key.pem
+
+echo "Public key generated: public-key.pem"
+
+SECRET_NAME="cloudfront/private-key"
+
+# Check if the secret exists
+aws secretsmanager describe-secret --secret-id "$SECRET_NAME" > /dev/null 2>&1
+
+if [ $? -eq 0 ]; then
+  # Secret exists, update it
+  aws secretsmanager put-secret-value \
+    --secret-id "$SECRET_NAME" \
+    --secret-string file://private-key-rsa.pem
+  echo "Secret updated in AWS Secrets Manager under '$SECRET_NAME'"
+else
+  # Secret does not exist, create it
+  aws secretsmanager create-secret \
+    --name "$SECRET_NAME" \
+    --secret-string file://private-key-rsa.pem
+  echo "Secret created in AWS Secrets Manager under '$SECRET_NAME'"
+fi

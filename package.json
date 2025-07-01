@@ -6,8 +6,11 @@
   },
   "scripts": {
     "build": "tsc",
-    "deploy": "cdk deploy",
-    "synth": "cdk synth"
+    "build:lambda": "tsc --project lambda/chatbot/tsconfig.json && tsc --project lambda/cookie-signer/tsconfig.json",
+    "deploy": "export $(grep -v '^#' .env | xargs) && yarn build:lambda && npx cdk deploy",
+    "synth": "cdk synth",
+    "keys:update": "bash ./keys/generate-and-update-keys.ssh && bash ./keys/add-cloudfront-public-key.sh",
+    "dev": "export $(grep -v '^#' .env | xargs) && yarn deploy"
   },
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.835.0",
