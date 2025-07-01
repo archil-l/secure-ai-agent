@@ -1,16 +1,17 @@
 {
-  "name": "chatbot-cloudfront-secure",
+  "name": "secure-ai-agent",
   "version": "0.1.0",
   "bin": {
-    "chatbot-cloudfront-secure": "bin/deploy.ts"
+    "secure-ai-agent": "bin/deploy.ts"
   },
   "scripts": {
     "build": "tsc",
-    "build:lambda": "tsc --project lambda/chatbot/tsconfig.json && tsc --project lambda/cookie-signer/tsconfig.json",
+    "build:lambda": "tsc --project lambda/agent/tsconfig.json && tsc --project lambda/cookie-signer/tsconfig.json",
     "deploy": "export $(grep -v '^#' .env | xargs) && yarn build:lambda && npx cdk deploy",
-    "synth": "cdk synth",
-    "keys:update": "bash ./keys/generate-and-update-keys.ssh && bash ./keys/add-cloudfront-public-key.sh",
-    "dev": "export $(grep -v '^#' .env | xargs) && yarn deploy"
+    "synth": "npx cdk synth",
+    "bootstrap": "npx cdk bootstrap",
+    "destroy": "npx cdk destroy",
+    "keys:update": "bash ./keys/generate-and-update-keys.ssh && bash ./keys/add-cloudfront-public-key.sh"
   },
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.835.0",

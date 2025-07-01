@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
-import { createChatbotInfraStack } from '../stacks/chatbot-infra-stack';
+import { createAgentInfraStack } from '../stacks/agent-infra-stack';
 
 const app = new cdk.App();
-createChatbotInfraStack(app, 'ChatbotInfraStack');
+createAgentInfraStack(app, 'AgentInfraStack');

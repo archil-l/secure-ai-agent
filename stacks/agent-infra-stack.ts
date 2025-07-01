@@ -13,39 +13,39 @@ import { Construct } from 'constructs';
 const KEY_PAIR_ID = process.env.KEY_PAIR_ID || '';
 const DOMAIN = process.env.DOMAIN || '';
 
-export const createChatbotInfraStack = (
+export const createAgentInfraStack = (
   scope: Construct,
   id: string,
   props?: cdk.StackProps
 ) => {
   const stack = new cdk.Stack(scope, id, props);
 
-  const chatFn = new lambda.Function(stack, 'ChatFunction', {
+  const agentFn = new lambda.Function(stack, 'CallAgentFunction', {
     runtime: lambda.Runtime.NODEJS_22_X,
-    code: lambda.Code.fromAsset('lambda/chatbot/dist'), // Use transpiled JS
+    code: lambda.Code.fromAsset('lambda/agent/dist'), // Use transpiled JS
     handler: 'index.handler',
     logRetention: logs.RetentionDays.ONE_WEEK,
   });
 
-  const api = new apigw.LambdaRestApi(stack, 'ChatApi', {
-    handler: chatFn,
+  const api = new apigw.LambdaRestApi(stack, 'AgentApi', {
+    handler: agentFn,
     proxy: true,
   });
 
   // Reference existing CloudFront public key by ID
   const cfPubKey = cloudfront.PublicKey.fromPublicKeyId(
     stack,
-    'ChatCFPublicKey',
+    'AgentCFPublicKey',
     KEY_PAIR_ID
   );
 
-  const cfKeyGroup = new cloudfront.KeyGroup(stack, 'ChatCFKeyGroup', {
+  const cfKeyGroup = new cloudfront.KeyGroup(stack, 'AgentCFKeyGroup', {
     items: [cfPubKey],
   });
 
   const distribution = new cloudfront.Distribution(
     stack,
-    'ChatCFDistribution',
+    'AgentCFDistribution',
     {
       defaultBehavior: {
         origin: new origins.HttpOrigin(

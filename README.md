@@ -1,6 +1,28 @@
-# Chatbot CloudFront Secure
+# Secure AI Agent
 
-This project provisions a secure AWS infrastructure for a chatbot API using AWS CDK (TypeScript). It features CloudFront signed cookies, Lambda-based API endpoints, and automated key management.
+> **Motivation:** I am integrating an AI agent into my personal webpage, but I do not want to expose sensitive API keys in the frontend. By using CloudFront signed cookies, I can securely restrict access to the agent API, ensuring that API keys remain protected and are never exposed to users or other actors in the browser.
+
+## Architecture
+
+```mermaid
+flowchart TD
+    A[User Browser]
+    B(Cookie Signer API\n(Lambda: cookie-signer)\n/API Gateway /sign-cookie)
+    C(CloudFront)
+    D(API Gateway /agent)
+    E(Lambda: agent)
+
+    A -- 1. Request /sign-cookie --> B
+    B -- Set Signed Cookie --> A
+    A -- 2. Request with Signed Cookie --> C
+    C -- Validates Cookie --> D
+    D -- Invokes --> E
+    E -- Response --> D
+    D -- Response --> C
+    C -- Response --> A
+```
+
+This project provisions a secure AWS infrastructure for an agent API using AWS CDK (TypeScript). It features CloudFront signed cookies, Lambda-based API endpoints, and automated key management.
 
 ## Features
 
