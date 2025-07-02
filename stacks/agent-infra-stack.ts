@@ -32,27 +32,7 @@ export const createAgentInfraStack = (
   const api = new apigw.LambdaRestApi(stack, 'AgentApi', {
     handler: agentFn,
     proxy: true,
-    policy: new iam.PolicyDocument({
-      statements: [
-        new iam.PolicyStatement({
-          effect: iam.Effect.DENY,
-          principals: [new iam.AnyPrincipal()],
-          actions: ['execute-api:Invoke'],
-          resources: ['execute-api:/*/*/*'],
-          conditions: {
-            StringNotEquals: {
-              'aws:RequestHeader/X-From-CloudFront': agentApiHeaderValue,
-            },
-          },
-        }),
-        new iam.PolicyStatement({
-          effect: iam.Effect.ALLOW,
-          principals: [new iam.AnyPrincipal()],
-          actions: ['execute-api:Invoke'],
-          resources: ['execute-api:/*/*/*'],
-        }),
-      ],
-    }),
+    description: 'API for the secure AI agent',
   });
 
   // Reference existing CloudFront public key by ID
