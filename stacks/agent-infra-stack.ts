@@ -9,8 +9,8 @@ import {
 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
-// Load KEY_PAIR_ID and DOMAIN from environment variables, fallback to defaults if not set
 const KEY_PAIR_ID = process.env.KEY_PAIR_ID || '';
+const DOMAIN = process.env.DOMAIN || 'archil.io';
 
 export const createAgentInfraStack = (
   scope: Construct,
@@ -19,15 +19,16 @@ export const createAgentInfraStack = (
 ) => {
   const stack = new cdk.Stack(scope, id, props);
 
+  // Create the Lambda function for the AI agent
   const agentFn = new lambda.Function(stack, 'AgentFunction', {
     runtime: lambda.Runtime.NODEJS_22_X,
-    code: lambda.Code.fromAsset('lambda/agent/dist'), // Use transpiled JS
+    code: lambda.Code.fromAsset('lambda/agent/dist'), // Using transpiled JS
     handler: 'index.handler',
     logRetention: logs.RetentionDays.ONE_WEEK,
+    environment: {
+      DOMAIN,
+    },
   });
-
-  const agentApiHeader = 'X-From-CloudFront';
-  const agentApiHeaderValue = 'true';
 
   const api = new apigw.LambdaRestApi(stack, 'AgentApi', {
     handler: agentFn,
@@ -35,7 +36,8 @@ export const createAgentInfraStack = (
     description: 'API for the secure AI agent',
   });
 
-  // Reference existing CloudFront public key by ID
+  // Create CloudFront distribution for the API
+
   const cfPubKey = cloudfront.PublicKey.fromPublicKeyId(
     stack,
     'AgentCFPublicKey',
@@ -45,6 +47,9 @@ export const createAgentInfraStack = (
   const cfKeyGroup = new cloudfront.KeyGroup(stack, 'AgentCFKeyGroup', {
     items: [cfPubKey],
   });
+
+  const agentApiHeader = 'X-From-CloudFront';
+  const agentApiHeaderValue = 'true';
 
   const distribution = new cloudfront.Distribution(
     stack,
@@ -70,7 +75,9 @@ export const createAgentInfraStack = (
     }
   );
 
-  const PRIVATE_KEY_SECRET_NAME = 'cloudfront/private-key'; // Name of your secret in Secrets Manager
+  // Create the Lambda function for signing cookies
+
+  const PRIVATE_KEY_SECRET_NAME = 'cloudfront/private-key'; // Name of the secret in Secrets Manager
 
   const cookieSignerFn = new lambda.Function(stack, 'CookieSignerFunction', {
     runtime: lambda.Runtime.NODEJS_22_X,
@@ -79,7 +86,8 @@ export const createAgentInfraStack = (
     environment: {
       KEY_PAIR_ID,
       PRIVATE_KEY_SECRET_NAME,
-      DOMAIN: distribution.domainName,
+      AGENT_DOMAIN: distribution.domainName,
+      DOMAIN,
     },
   });
 
@@ -98,7 +106,8 @@ export const createAgentInfraStack = (
     proxy: true,
   });
 
-  // Add a behavior to CloudFront for /sign-cookie
+  // Using same CloudFront distribution with a new behavior for signing cookies
+
   distribution.addBehavior(
     '/sign-cookie',
     new origins.HttpOrigin(

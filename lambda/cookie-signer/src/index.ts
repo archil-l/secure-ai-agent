@@ -6,6 +6,7 @@ import { APIGatewayProxyHandler } from 'aws-lambda';
 import crypto from 'crypto';
 
 const KEY_PAIR_ID = process.env.KEY_PAIR_ID as string;
+const AGENT_DOMAIN = process.env.AGENT_DOMAIN as string;
 const DOMAIN = process.env.DOMAIN as string;
 const PRIVATE_KEY_SECRET_NAME = process.env.PRIVATE_KEY_SECRET_NAME as string;
 
@@ -25,10 +26,7 @@ async function getPrivateKey(): Promise<string> {
 }
 
 export const handler: APIGatewayProxyHandler = async (event: any) => {
-  const domain = DOMAIN;
   const expires = Math.floor(Date.now() / 1000) + 60 * 60;
-
-  console.log('Signing cookie for domain:', domain);
 
   const policy = JSON.stringify({
     Statement: [
@@ -64,8 +62,9 @@ export const handler: APIGatewayProxyHandler = async (event: any) => {
     .replace(/=/g, '_')
     .replace(/\//g, '~');
 
+  const corsOrigin = `https://${DOMAIN}`;
   const headers = {
-    'Access-Control-Allow-Origin': 'https://archil.io',
+    'Access-Control-Allow-Origin': corsOrigin,
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET',
@@ -73,9 +72,9 @@ export const handler: APIGatewayProxyHandler = async (event: any) => {
 
   const multiValueHeaders = {
     'Set-Cookie': [
-      `CloudFront-Policy=${policyBase64}; Domain=${domain}; Path=/; SameSite=None; Secure; HttpOnly`,
-      `CloudFront-Signature=${signature}; Domain=${domain}; Path=/; SameSite=None; Secure; HttpOnly`,
-      `CloudFront-Key-Pair-Id=${KEY_PAIR_ID}; Domain=${domain}; Path=/; SameSite=None; Secure; HttpOnly`,
+      `CloudFront-Policy=${policyBase64}; Domain=${AGENT_DOMAIN}; Path=/; SameSite=None; Secure; HttpOnly`,
+      `CloudFront-Signature=${signature}; Domain=${AGENT_DOMAIN}; Path=/; SameSite=None; Secure; HttpOnly`,
+      `CloudFront-Key-Pair-Id=${KEY_PAIR_ID}; Domain=${AGENT_DOMAIN}; Path=/; SameSite=None; Secure; HttpOnly`,
     ],
   };
 
