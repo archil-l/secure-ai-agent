@@ -90,13 +90,15 @@ export const createAgentInfraStack = (
     }
   );
 
+  const PRIVATE_KEY_SECRET_NAME = 'cloudfront/private-key'; // Name of your secret in Secrets Manager
+
   const cookieSignerFn = new lambda.Function(stack, 'CookieSignerFunction', {
     runtime: lambda.Runtime.NODEJS_22_X,
-    code: lambda.Code.fromAsset('lambda/cookie-signer/dist'), // Use transpiled JS
+    code: lambda.Code.fromAsset('lambda/cookie-signer/dist'),
     handler: 'index.handler',
     environment: {
       KEY_PAIR_ID,
-      PRIVATE_KEY_SECRET_NAME: 'cloudfront/private-key', // Name of your secret in Secrets Manager
+      PRIVATE_KEY_SECRET_NAME,
       DOMAIN: distribution.domainName,
     },
   });
@@ -106,7 +108,7 @@ export const createAgentInfraStack = (
     new iam.PolicyStatement({
       actions: ['secretsmanager:GetSecretValue'],
       resources: [
-        `arn:aws:secretsmanager:${stack.region}:${stack.account}:secret:cloudfront/private-key*`,
+        `arn:aws:secretsmanager:${stack.region}:${stack.account}:secret:${PRIVATE_KEY_SECRET_NAME}*`,
       ],
     })
   );
