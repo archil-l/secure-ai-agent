@@ -65,7 +65,7 @@ export const handler: APIGatewayProxyHandler = async (event: any) => {
     .replace(/\//g, '~');
 
   const headers = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': 'https://archil.io',
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET',
@@ -73,9 +73,9 @@ export const handler: APIGatewayProxyHandler = async (event: any) => {
 
   const multiValueHeaders = {
     'Set-Cookie': [
-      `CloudFront-Policy=${policyBase64}; Domain=${domain}; Path=/; Secure; HttpOnly`,
-      `CloudFront-Signature=${signature}; Domain=${domain}; Path=/; Secure; HttpOnly`,
-      `CloudFront-Key-Pair-Id=${KEY_PAIR_ID}; Domain=${domain}; Path=/; Secure; HttpOnly`,
+      `CloudFront-Policy=${policyBase64}; Domain=${domain}; Path=/; SameSite=None; Secure; HttpOnly`,
+      `CloudFront-Signature=${signature}; Domain=${domain}; Path=/; SameSite=None; Secure; HttpOnly`,
+      `CloudFront-Key-Pair-Id=${KEY_PAIR_ID}; Domain=${domain}; Path=/; SameSite=None; Secure; HttpOnly`,
     ],
   };
 

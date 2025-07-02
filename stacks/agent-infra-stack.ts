@@ -11,7 +11,6 @@ import { Construct } from 'constructs';
 
 // Load KEY_PAIR_ID and DOMAIN from environment variables, fallback to defaults if not set
 const KEY_PAIR_ID = process.env.KEY_PAIR_ID || '';
-const DOMAIN = process.env.DOMAIN || '';
 
 export const createAgentInfraStack = (
   scope: Construct,
@@ -20,16 +19,40 @@ export const createAgentInfraStack = (
 ) => {
   const stack = new cdk.Stack(scope, id, props);
 
-  const agentFn = new lambda.Function(stack, 'CallAgentFunction', {
+  const agentFn = new lambda.Function(stack, 'AgentFunction', {
     runtime: lambda.Runtime.NODEJS_22_X,
     code: lambda.Code.fromAsset('lambda/agent/dist'), // Use transpiled JS
     handler: 'index.handler',
     logRetention: logs.RetentionDays.ONE_WEEK,
   });
 
+  const agentApiHeader = 'X-From-CloudFront';
+  const agentApiHeaderValue = 'true';
+
   const api = new apigw.LambdaRestApi(stack, 'AgentApi', {
     handler: agentFn,
     proxy: true,
+    policy: new iam.PolicyDocument({
+      statements: [
+        new iam.PolicyStatement({
+          effect: iam.Effect.DENY,
+          principals: [new iam.AnyPrincipal()],
+          actions: ['execute-api:Invoke'],
+          resources: ['execute-api:/*/*/*'],
+          conditions: {
+            StringNotEquals: {
+              'aws:RequestHeader/X-From-CloudFront': agentApiHeaderValue,
+            },
+          },
+        }),
+        new iam.PolicyStatement({
+          effect: iam.Effect.ALLOW,
+          principals: [new iam.AnyPrincipal()],
+          actions: ['execute-api:Invoke'],
+          resources: ['execute-api:/*/*/*'],
+        }),
+      ],
+    }),
   });
 
   // Reference existing CloudFront public key by ID
@@ -49,12 +72,20 @@ export const createAgentInfraStack = (
     {
       defaultBehavior: {
         origin: new origins.HttpOrigin(
-          `${api.restApiId}.execute-api.${stack.region}.amazonaws.com`
+          `${api.restApiId}.execute-api.${stack.region}.amazonaws.com`, // Use the API Gateway stage
+          {
+            originPath: '/prod',
+            customHeaders: {
+              [agentApiHeader]: agentApiHeaderValue,
+            },
+          }
         ),
         trustedKeyGroups: [cfKeyGroup], // Require signed cookies for API access
         allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
         cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.HTTPS_ONLY,
+        originRequestPolicy:
+          cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
       },
     }
   );
@@ -66,7 +97,7 @@ export const createAgentInfraStack = (
     environment: {
       KEY_PAIR_ID,
       PRIVATE_KEY_SECRET_NAME: 'cloudfront/private-key', // Name of your secret in Secrets Manager
-      DOMAIN,
+      DOMAIN: distribution.domainName,
     },
   });
 
@@ -83,30 +114,28 @@ export const createAgentInfraStack = (
   const cookieSignerApi = new apigw.LambdaRestApi(stack, 'CookieSignerApi', {
     handler: cookieSignerFn,
     proxy: true,
-    deployOptions: {
-      stageName: 'prod',
-    },
   });
 
   // Add a behavior to CloudFront for /sign-cookie
   distribution.addBehavior(
     '/sign-cookie',
     new origins.HttpOrigin(
-      `${cookieSignerApi.restApiId}.execute-api.${stack.region}.amazonaws.com`
+      `${cookieSignerApi.restApiId}.execute-api.${stack.region}.amazonaws.com`,
+      {
+        originPath: '/prod',
+      }
     ),
     {
       allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
       cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
       viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.HTTPS_ONLY,
+      originRequestPolicy:
+        cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
     }
   );
 
   new cdk.CfnOutput(stack, 'CloudFrontURL', {
     value: `https://${distribution.domainName}`,
-  });
-
-  new cdk.CfnOutput(stack, 'CookieSignerURL', {
-    value: cookieSignerFn.functionArn,
   });
 
   return stack;

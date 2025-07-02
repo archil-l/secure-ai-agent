@@ -16,10 +16,12 @@
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.835.0",
     "aws-cdk-lib": "^2.202.0",
+    "aws-sdk": "^2.1692.0",
     "constructs": "^10.4.2"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.150",
+    "@types/aws-sdk": "^2.7.4",
     "@types/node": "^24.0.4",
     "typescript": "^5.3.3"
   },
