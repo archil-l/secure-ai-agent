@@ -30,6 +30,13 @@ export const createAgentInfraStack = (
     },
   });
 
+  agentFn.addToRolePolicy(
+    new iam.PolicyStatement({
+      actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
+      resources: ['*'], // Optionally restrict to specific model ARN
+    })
+  );
+
   const api = new apigw.LambdaRestApi(stack, 'AgentApi', {
     handler: agentFn,
     proxy: true,

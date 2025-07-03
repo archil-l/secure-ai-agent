@@ -1,22 +1,36 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
-
-const DOMAIN = process.env.DOMAIN || '';
+import { headers, validateRequest } from './utils';
+import { getBedrockResponse } from './bedrock';
 
 export const handler: APIGatewayProxyHandler = async (event) => {
-  console.log('Received event:', JSON.stringify(event, null, 2));
+  const { isValid, response } = validateRequest(event);
+  if (!isValid) {
+    return {
+      statusCode: response?.statusCode ?? 400, // Ensure statusCode is always a number
+      headers,
+      body: JSON.stringify(response?.body),
+    };
+  }
 
-  const corsOrigin = `https://${DOMAIN}`;
-  const headers = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': corsOrigin,
-    'Access-Control-Allow-Credentials': 'true',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST',
-  };
+  const { prompt } = JSON.parse(event.body || '{}') || {};
 
-  return {
-    statusCode: 200,
-    headers,
-    body: JSON.stringify({ message: 'Hello from your new Agent!' }),
-  };
+  try {
+    const modelResponse = await getBedrockResponse(prompt);
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ answer: modelResponse }),
+    };
+  } catch (error: any) {
+    console.error('Error:', error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        error: 'Failed to get response from Bedrock',
+        details: error?.message,
+      }),
+    };
+  }
 };
