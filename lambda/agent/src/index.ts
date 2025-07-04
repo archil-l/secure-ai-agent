@@ -12,10 +12,10 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     };
   }
 
-  const { prompt } = JSON.parse(event.body || '{}') || {};
+  const { conversation } = JSON.parse(event.body || '{}') || {};
 
   try {
-    const modelResponse = await getBedrockResponse(prompt);
+    const modelResponse = await getBedrockResponse(conversation);
 
     return {
       statusCode: 200,

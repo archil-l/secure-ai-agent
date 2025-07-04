@@ -47,9 +47,9 @@ export const validateRequest = (event: any): ValidationResult => {
       },
     };
   }
-  const { prompt } = JSON.parse(event?.body) || {};
+  const { conversation } = JSON.parse(event?.body) || {};
 
-  if (!prompt) {
+  if (!conversation) {
     return {
       isValid: false,
       response: {

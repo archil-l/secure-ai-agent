@@ -24,6 +24,7 @@ export const createAgentInfraStack = (
     runtime: lambda.Runtime.NODEJS_22_X,
     code: lambda.Code.fromAsset('lambda/agent/dist'), // Using transpiled JS
     handler: 'index.handler',
+    timeout: cdk.Duration.seconds(15),
     logRetention: logs.RetentionDays.ONE_WEEK,
     environment: {
       DOMAIN,

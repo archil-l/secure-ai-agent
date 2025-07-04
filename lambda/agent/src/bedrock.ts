@@ -1,35 +1,27 @@
 import {
   BedrockRuntimeClient,
   ConverseCommand,
-  ConversationRole, // Import the enum
+  ConversationRole,
+  Message,
 } from '@aws-sdk/client-bedrock-runtime';
+import { systemPrompt } from './system-prompt';
 
 // Model ID for Claude 3.7 Sonnet
 const modelId = 'us.anthropic.claude-3-7-sonnet-20250219-v1:0';
 
 const client = new BedrockRuntimeClient({ region: 'us-east-1' });
 
-export const getBedrockResponse = async (prompt: string) => {
-  const input = {
-    modelId: modelId,
-    messages: [
-      {
-        role: ConversationRole.USER, // Use the enum value
-        content: [
-          {
-            text: prompt,
-          },
-        ],
-      },
-    ],
-    inferenceConfig: {
-      temperature: 0.7,
-      maxTokens: 500,
-    },
-  };
-
+export const getBedrockResponse = async (conversation: Message[]) => {
   try {
-    const command = new ConverseCommand(input);
+    const command = new ConverseCommand({
+      modelId,
+      messages: conversation,
+      system: systemPrompt,
+      inferenceConfig: {
+        temperature: 0.7,
+        maxTokens: 500,
+      },
+    });
     const response = await client.send(command);
 
     console.log("Claude's Response:");
