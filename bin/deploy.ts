@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
-import { createAgentInfraStack } from '../stacks/agent-infra-stack';
+import { createWebSocketAuthStack } from '../stacks/web-socket-agent-stack';
 
 const app = new cdk.App();
-createAgentInfraStack(app, 'AgentInfraStack');
+createWebSocketAuthStack(app, 'WebSocketAgentStack');

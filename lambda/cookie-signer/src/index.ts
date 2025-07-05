@@ -5,16 +5,15 @@ import {
 import { APIGatewayProxyHandler } from 'aws-lambda';
 import crypto from 'crypto';
 
-const KEY_PAIR_ID = process.env.KEY_PAIR_ID as string;
 const AGENT_DOMAIN = process.env.AGENT_DOMAIN as string;
 const DOMAIN = process.env.DOMAIN as string;
-const PRIVATE_KEY_SECRET_NAME = process.env.PRIVATE_KEY_SECRET_NAME as string;
+const SECRET_NAME = process.env.SECRET_NAME as string;
 
 const secretsClient = new SecretsManagerClient({});
 
 async function getPrivateKey(): Promise<string> {
   const command = new GetSecretValueCommand({
-    SecretId: PRIVATE_KEY_SECRET_NAME,
+    SecretId: SECRET_NAME,
   });
   const response = await secretsClient.send(command);
   if (!response.SecretString) {
@@ -31,7 +30,7 @@ export const handler: APIGatewayProxyHandler = async (event: any) => {
   const policy = JSON.stringify({
     Statement: [
       {
-        Resource: 'https://*.cloudfront.net/*',
+        Resource: `wss://${AGENT_DOMAIN}/dev*`,
         Condition: {
           DateLessThan: { 'AWS:EpochTime': expires },
         },
@@ -70,11 +69,12 @@ export const handler: APIGatewayProxyHandler = async (event: any) => {
     'Access-Control-Allow-Methods': 'GET',
   };
 
+  // Updated cookie names to reflect WebSocket authentication
   const multiValueHeaders = {
     'Set-Cookie': [
-      `CloudFront-Policy=${policyBase64}; Domain=${AGENT_DOMAIN}; Path=/; SameSite=None; Secure; HttpOnly`,
-      `CloudFront-Signature=${signature}; Domain=${AGENT_DOMAIN}; Path=/; SameSite=None; Secure; HttpOnly`,
-      `CloudFront-Key-Pair-Id=${KEY_PAIR_ID}; Domain=${AGENT_DOMAIN}; Path=/; SameSite=None; Secure; HttpOnly`,
+      `WS-Policy=${policyBase64}; Domain=${AGENT_DOMAIN}; Path=/; SameSite=None; Secure; HttpOnly`,
+      `WS-Signature=${signature}; Domain=${AGENT_DOMAIN}; Path=/; SameSite=None; Secure; HttpOnly`,
+      `WS-Auth-Id=WEBSOCKET-AUTH; Domain=${AGENT_DOMAIN}; Path=/; SameSite=None; Secure; HttpOnly`,
     ],
   };
 

@@ -6,14 +6,15 @@
   },
   "scripts": {
     "build": "tsc",
-    "build:lambda": "tsc --project lambda/agent/tsconfig.json && tsc --project lambda/cookie-signer/tsconfig.json",
-    "deploy": "export $(grep -v '^#' .env | xargs) && yarn build:lambda && npx cdk deploy",
-    "synth": "npx cdk synth",
+    "build:lambda": "tsc --project lambda/agent/tsconfig.json && tsc --project lambda/cookie-signer/tsconfig.json && tsc --project lambda/authorizer/tsconfig.json",
+    "deploy": "export $(grep -v '^#' .env | xargs) && yarn build:lambda && npx cdk deploy WebSocketAgentStack",
+    "synth": "npx cdk synth WebSocketAgentStack",
     "bootstrap": "npx cdk bootstrap",
-    "destroy": "npx cdk destroy",
-    "keys:update": "bash ./keys/generate-and-update-keys.ssh && bash ./keys/add-cloudfront-public-key.sh"
+    "destroy": "npx cdk destroy WebSocketAgentStack",
+    "keys:update": "bash ./keys/generate-and-update-keys.ssh && bash ./keys/verify-websocket-keys.sh"
   },
   "dependencies": {
+    "@aws-sdk/client-apigatewaymanagementapi": "^3.840.0",
     "@aws-sdk/client-bedrock-runtime": "^3.842.0",
     "@aws-sdk/client-secrets-manager": "^3.835.0",
     "aws-cdk-lib": "^2.202.0",

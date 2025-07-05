@@ -24,7 +24,23 @@ openssl rsa -in private-key-rsa.pem -pubout -out public-key.pem
 
 echo "Public key generated: public-key.pem"
 
-SECRET_NAME="cloudfront/private-key"
+# Read the keys
+PRIVATE_KEY=$(cat private-key-rsa.pem)
+PUBLIC_KEY=$(cat public-key.pem)
+
+# Create a JSON object with both keys
+JSON_SECRET=$(cat <<EOF
+{
+  "privateKey": "$PRIVATE_KEY",
+  "publicKey": "$PUBLIC_KEY"
+}
+EOF
+)
+
+# Replace newlines with \n for JSON compatibility
+JSON_SECRET=$(echo "$JSON_SECRET" | awk '{printf "%s\\n", $0}')
+
+SECRET_NAME="WebSocketAuthKeys"
 
 # Check if the secret exists
 aws secretsmanager describe-secret --secret-id "$SECRET_NAME" > /dev/null 2>&1
@@ -33,12 +49,14 @@ if [ $? -eq 0 ]; then
   # Secret exists, update it
   aws secretsmanager put-secret-value \
     --secret-id "$SECRET_NAME" \
-    --secret-string file://private-key-rsa.pem
+    --secret-string "$JSON_SECRET"
   echo "Secret updated in AWS Secrets Manager under '$SECRET_NAME'"
 else
   # Secret does not exist, create it
   aws secretsmanager create-secret \
     --name "$SECRET_NAME" \
-    --secret-string file://private-key-rsa.pem
+    --secret-string "$JSON_SECRET"
   echo "Secret created in AWS Secrets Manager under '$SECRET_NAME'"
 fi
+
+echo "WebSocket authentication keys have been generated and stored in AWS Secrets Manager."
